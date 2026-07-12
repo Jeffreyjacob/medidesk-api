@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Plan {
+enum ClinicPlan {
   FREE
   PRO
 }
@@ -47,7 +47,10 @@ enum InvoiceStatus {
 model User {
   id    String  @id @default(cuid())
   email  String  @unique
+  firstName  String
+  lastName   String
   passwordHash    String
+  isActive    Boolean  @default(true)
   isEmailVerifed Boolean @default(false)
   failedLoginAttempts Int  @default(0)
   lockedUntil   DateTime? 
@@ -76,6 +79,7 @@ model RefreshToken {
   user  User    @relation(fields: [userId],references: [id])
 
   @@index([userId])
+  @@index([userId,tokenHash])
 }
 
 model PasswordResetToken {
@@ -87,6 +91,9 @@ model PasswordResetToken {
   createdAt   DateTime   @default(now())
 
   user User  @relation(fields: [userId],references: [id])
+
+  @@index([userId,tokenHash])
+  @@index([userId,tokenHash,expiresAt,usedAt])
 }
 
 model EmailVerificationOTP {
@@ -98,13 +105,16 @@ model EmailVerificationOTP {
   usedAt      DateTime?
   createdAt   DateTime   @default(now())
 
-  use User @relation(fields: [userId],references: [id])
+  user User @relation(fields: [userId],references: [id])
+
+  @@index([userId,codeHash])
+  @@index([userId,codeHash,expiresAt,usedAt])
 }
 
 model Clinic {
   id     String  @id @default(cuid())
   name   String
-  plan   Plan   @default(FREE)
+  plan   ClinicPlan   @default(FREE)
   webhooksEnabled   Boolean   @default(false)
   featureFlag     Json    @default("{}")
   stripeCustomerId     String?
