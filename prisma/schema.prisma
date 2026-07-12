@@ -1,0 +1,280 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum ClinicRole {
+  OWNER
+  ADMIN
+  DOCTOR
+}
+
+enum SlotStatus {
+  AVAILABLE 
+  BOOKED
+  UNAVAILABLE
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  CANCELLED_BY_PATIENT
+  CANCELLED_BY_PROVIDER
+  COMPLETED
+  NO_SHOW
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  REFUNDED
+  VOID
+}
+
+model User {
+  id    String  @id @default(cuid())
+  email  String  @unique
+  passwordHash    String
+  isEmailVerifed Boolean @default(false)
+  failedLoginAttempts Int  @default(0)
+  lockedUntil   DateTime? 
+  lastLoginAt   DateTime?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime @updatedAt
+
+  refreshTokens  RefreshToken[]
+  passwordResets    PasswordResetToken[]
+  emailVerifications   EmailVerificationOTP[]
+  clinicMemberships    ClinicMember[]
+}
+
+model RefreshToken {
+  id     String   @id @default(cuid())
+  userId  String
+  tokenHash   String  @unique
+  deviceInfo  String?
+  ipAddress   String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  replaceByTokenId     String?
+  createdAt     DateTime  @default(now())
+  
+  user  User    @relation(fields: [userId],references: [id])
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id    String   @id  @default(cuid())
+  userId   String
+  tokenHash   String
+  expiresAt   DateTime
+  usedAt    DateTime?
+  createdAt   DateTime   @default(now())
+
+  user User  @relation(fields: [userId],references: [id])
+}
+
+model EmailVerificationOTP {
+  id     String   @id  @default(cuid())
+  userId   String
+  codeHash   String
+  attempts   Int    @default(0)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime   @default(now())
+
+  use User @relation(fields: [userId],references: [id])
+}
+
+model Clinic {
+  id     String  @id @default(cuid())
+  name   String
+  plan   Plan   @default(FREE)
+  webhooksEnabled   Boolean   @default(false)
+  featureFlag     Json    @default("{}")
+  stripeCustomerId     String?
+  stripeSubscriptionId     String?
+  createdAt     DateTime    @default(now())
+  deletedAt     DateTime?
+
+  members   ClinicMember[]
+  patients  Patient[]
+  schedules  Schedule[]
+  timeslots  TimeSlot[]
+  appointments Appointment[]
+  invoices     Invoice[]
+  webhookEndpoints  WebhookEndpoint[]
+  auditLogs    AuditLog[]
+}
+
+model ClinicMember {
+  id     String    @id  @default(cuid())
+  clinicId    String
+  userId     String
+  role    ClinicRole
+  createdAt   DateTime   @default(now())
+
+  clinic   Clinic   @relation(fields: [clinicId],references: [id])
+  user     User     @relation(fields: [userId],references: [id])
+  
+  @@unique([clinicId,userId])
+}
+
+model Patient {
+  id     String  @id @default(cuid())
+  clinicId  String
+  firstName  String
+  lastName   String
+  email     String?
+  phone     String?
+  dateOfBirth    DateTime?
+  searchVector   Unsupported("tsvector")?
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  clinc    Clinic  @relation(fields: [clinicId],references: [id])
+
+  appointment Appointment[]
+
+  @@index([searchVector],type: Gin)
+}
+
+model Schedule {
+  id     String  @id @default(cuid())
+  clinicId  String
+  doctorId  String
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  slotDurationMinutes  Int  @default(30)
+  createdAt   DateTime   @default(now())
+
+  clinic      Clinic    @relation(fields: [clinicId],references: [id])
+}
+
+model TimeSlot {
+  id     String   @id  @default(cuid())
+  clinicId  String
+  doctorId  String
+  startsAt  DateTime
+  endsAt    DateTime
+  status    SlotStatus   @default(AVAILABLE)
+  version   Int    @default(0)
+  createdAt  DateTime  @default(now())
+
+  clinic     Clinic    @relation(fields: [clinicId],references: [id])
+  appointment Appointment?
+
+  @@unique([doctorId,startsAt])
+  @@index([clinicId,doctorId,startsAt])
+}
+
+
+model Appointment {
+  id     String   @id @default(cuid())
+  clinicId   String
+  timeSlotId  String   @unique
+  patientId   String
+  status     AppointmentStatus  @default(CONFIRMED)
+  createdAt   DateTime    @default(now())
+  cancelledAt DateTime?
+  cancelReason  String?
+
+  clinic      Clinic    @relation(fields: [clinicId],references: [id])
+  timeSlot    TimeSlot  @relation(fields: [timeSlotId],references: [id])
+  patient     Patient  @relation(fields: [patientId],references: [id])
+  medicalRecord  MedicalRecord?
+  invoice       Invoice?
+
+}
+
+model MedicalRecord {
+  id    String   @id @default(cuid())
+  appointmentId   String  @unique
+  notes      String
+  diagnosis   String?
+  searchVector   Unsupported("tsvector")?
+  createdAt      DateTime  @default(now())
+
+  appointment   Appointment  @relation(fields: [appointmentId],references: [id])
+
+  @@index([searchVector],type:Gin)
+}
+
+model Invoice {
+  id   String   @id  @default(cuid())
+  clinicId   String
+  appointmentId  String   @unique
+  amountCents    Int
+  status       InvoiceStatus  @default(PENDING)
+  stripePaymentIntentId    String?
+  createdAt     DateTime   @default(now())
+
+  clinic    Clinic    @relation(fields: [clinicId],references: [id])
+  appointment   Appointment  @relation(fields: [appointmentId],references: [id])
+}
+
+
+model WebhookEndpoint {
+  id    String   @id  @default(cuid())
+  clinicId  String
+  url     String
+  secret   String 
+  events    String[]
+  isActive   Boolean  @default(true)
+  createdAt  DateTime  @default(now())
+
+  clinc      Clinic   @relation(fields: [clinicId],references: [id])
+  deliveries    WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id   String    @id @default(cuid())
+  endpointId   String
+  event        String
+  payload      Json
+  status       String
+  responseStatus   Int?
+  responseBody     String?
+  attempt   Int    @default(1)
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  endpoint     WebhookEndpoint  @relation(fields: [endpointId],references: [id])
+}
+
+model  AuditLog {
+  id   String    @id @default(cuid())
+  clinicId  String
+  actorId   String?
+  action    String
+  metadata  Json
+  createdAt  DateTime  @default(now())
+
+  clinic   Clinic   @relation(fields: [clinicId],references: [id])
+}
+
+model Notification {
+  id   String   @id @default(cuid())
+  userId   String
+  type     String
+  payload  Json
+  readAt   DateTime?
+  createdAt  DateTime  @default(now())
+}
+
