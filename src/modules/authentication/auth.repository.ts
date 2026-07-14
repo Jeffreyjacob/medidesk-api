@@ -146,7 +146,12 @@ export class PasswordResetTokenRepository extends BaseRepository<
     tokenHash: string;
   }): Promise<PasswordResetToken | null> {
     return this.findFirst({
-      where: { userId, tokenHash, expiresAt: { gt: new Date() }, usedAt: null },
+      where: {
+        userId,
+        tokenHash,
+        expiresAt: { gte: new Date() },
+        usedAt: null,
+      },
     });
   }
 
@@ -176,9 +181,12 @@ export class RefreshTokenRepository extends BaseRepository<
     super(() => prisma.refreshToken);
   }
 
-  async createRefreshToken(
-    args: Prisma.RefreshTokenCreateInput,
-  ): Promise<RefreshToken> {
+  async createRefreshToken(args: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    replaceByTokenId?: string;
+  }): Promise<RefreshToken> {
     return this.create({
       data: {
         ...args,
@@ -189,14 +197,16 @@ export class RefreshTokenRepository extends BaseRepository<
   async invalidateRefreshToken(args: {
     id: string;
     revokedAt: Date;
-    replaceByTokenId: string;
+    replaceByTokenId?: string;
   }): Promise<RefreshToken | null> {
     return this.update({
       where: {
         id: args.id,
       },
       data: {
-        replaceByTokenId: args.replaceByTokenId,
+        ...(args.replaceByTokenId && {
+          replaceByTokenId: args.replaceByTokenId,
+        }),
         revokedAt: args.revokedAt,
       },
     });

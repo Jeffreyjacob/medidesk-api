@@ -18,6 +18,7 @@ export interface ILoginResponse {
     email: string;
   };
   accessToken: string;
+  refreshToken: string;
 }
 
 export interface IActivateClinicResponse {
@@ -31,6 +32,7 @@ export interface IActivateClinicResponse {
 
 export interface IRefreshTokenResponse {
   accessToken: string;
+  refreshToken: string;
 }
 
 export interface ITokenPayload {

@@ -55,6 +55,7 @@ model User {
   failedLoginAttempts Int  @default(0)
   lockedUntil   DateTime? 
   lastLoginAt   DateTime?
+  lastActiveClinicId  String?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime @updatedAt
