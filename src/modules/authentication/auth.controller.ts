@@ -81,4 +81,16 @@ export class AuthController {
     req.log?.info({ userId: req.user?.userId }, "User logged out");
     ResponseHelper.success(res, "", 200, result.message);
   }
+
+  async activateClinic(req: Request, res: Response): Promise<void> {
+    const clinicId = req.params.clinicId as string;
+    const result = await this.authService.activateClinic(
+      req.user?.userId!,
+      clinicId,
+    );
+    req.log?.info({ userId: req.user?.userId, clinicId }, "Clinic activated");
+    const { accessToken, refreshToken } = result;
+    setRefreshTokenCookie(res, refreshToken);
+    ResponseHelper.success(res, { accessToken }, 200, "Clinic activated");
+  }
 }

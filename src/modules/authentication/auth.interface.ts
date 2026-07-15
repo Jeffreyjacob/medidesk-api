@@ -19,6 +19,7 @@ export interface ILoginResponse {
   };
   accessToken: string;
   refreshToken: string;
+  activateClinic: boolean;
 }
 
 export interface IActivateClinicResponse {

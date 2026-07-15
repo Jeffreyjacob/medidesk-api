@@ -101,7 +101,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.getDelegate(tx ?? prisma);
   }
 
-  async findUnique(
+  protected async findUnique(
     args: {
       where: Prisma.Args<TDelegate, "findUnique">["where"];
       include?: Prisma.Args<TDelegate, "findUnique">["include"];
@@ -112,7 +112,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).findUnique(args);
   }
 
-  async findFirst(
+  protected async findFirst(
     args: {
       where?: Prisma.Args<TDelegate, "findFirst">["where"];
       include?: Prisma.Args<TDelegate, "findFirst">["include"];
@@ -124,7 +124,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).findFirst(args);
   }
 
-  async findMany(
+  protected async findMany(
     args: {
       where?: Prisma.Args<TDelegate, "findMany">["where"];
       include?: Prisma.Args<TDelegate, "findMany">["include"];
@@ -138,7 +138,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).findMany(args);
   }
 
-  async findManyWithPagination(
+  protected async findManyWithPagination(
     args: {
       where?: Prisma.Args<TDelegate, "findMany">["where"];
       include?: Prisma.Args<TDelegate, "findMany">["include"];
@@ -180,7 +180,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     };
   }
 
-  async count(
+  protected async count(
     args: {
       where: Prisma.Args<TDelegate, "count">["where"];
     },
@@ -199,7 +199,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return result !== null;
   }
 
-  async aggregate(
+  protected async aggregate(
     args: {
       where?: Prisma.Args<TDelegate, "aggregate">["where"];
       _count?: boolean | object;
@@ -213,7 +213,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).aggregate(args);
   }
 
-  async create(
+  protected async create(
     args: {
       data: Prisma.Args<TDelegate, "create">["data"];
       include?: Prisma.Args<TDelegate, "create">["include"];
@@ -224,7 +224,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).create(args);
   }
 
-  async update(
+  protected async update(
     args: {
       where: Prisma.Args<TDelegate, "update">["where"];
       data: Prisma.Args<TDelegate, "update">["data"];
@@ -236,7 +236,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).update(args);
   }
 
-  async delete(
+  protected async delete(
     args: {
       where: Prisma.Args<TDelegate, "delete">["where"];
     },
@@ -254,7 +254,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model().deleteMany(args);
   }
 
-  async createMany(
+  protected async createMany(
     args: {
       data: Prisma.Args<TDelegate, "createMany">["data"];
       skipDuplicates?: Prisma.Args<TDelegate, "createMany">["skipDuplicates"];
@@ -264,7 +264,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).createMany(args);
   }
 
-  async updateMany(
+  protected async updateMany(
     args: {
       where: Prisma.Args<TDelegate, "updateMany">["where"];
       data: Prisma.Args<TDelegate, "updateMany">["data"];
@@ -276,7 +276,7 @@ export abstract class BaseRepository<TDelegate, TResult> {
     return this.model(tx).updateMany(args);
   }
 
-  async upsert(
+  protected async upsert(
     args: {
       where: Prisma.Args<TDelegate, "upsert">["where"];
       create: Prisma.Args<TDelegate, "upsert">["where"];

@@ -20,6 +20,7 @@ import {
   generateVerificationToken,
   hashRefreshToken,
 } from "../../shared/utils/tokenUtils";
+import { ClinicMemberRepository } from "../clinic/clinic.repository";
 import {
   IAuthMessage,
   ILoginResponse,
@@ -49,6 +50,7 @@ export class AuthService {
     private readonly passwordResetRepo: PasswordResetTokenRepository,
     private readonly emailVerificationRepo: EmailVerificationRespository,
     private readonly refreshTokenRepo: RefreshTokenRepository,
+    private readonly clinicMemberRepo: ClinicMemberRepository,
   ) {}
 
   private async passwordHash(password: string): Promise<string> {
@@ -70,7 +72,7 @@ export class AuthService {
     if (checkIfUserExist) throw new ConflictError("email already exist");
 
     const passwordHash = await this.passwordHash(data.password);
-    const user = await this.authRepo.create({
+    const user = await this.authRepo.createUser({
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -79,9 +81,9 @@ export class AuthService {
       },
       select: {
         id: true,
-        email: true,
         firstName: true,
         lastName: true,
+        email: true,
       },
     });
 
@@ -104,7 +106,7 @@ export class AuthService {
         subject: "Verify your email",
         html: verifyEmailTemplate({
           code: otp,
-          firstName: user.firstName,
+          firstName: user.firstName!,
           url,
           expiresIn: 60,
         }),
@@ -117,17 +119,15 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName!,
+        lastName: user.lastName!,
       },
       message: "User created successfully!",
     };
   }
 
   async verifyEmail(data: IVerifyEmailInput): Promise<IAuthMessage> {
-    const user = await this.authRepo.findFirst({
-      where: { email: data.email },
-    });
+    const user = await this.authRepo.findByEmail(data.email);
     if (!user) throw new NotFoundError("User not found");
 
     if (user.isEmailVerifed)
@@ -207,7 +207,7 @@ export class AuthService {
         html: verifyEmailTemplate({
           url,
           code: otp,
-          firstName: user.firstName,
+          firstName: user.firstName!,
         }),
       });
     } catch (error: any) {
@@ -311,9 +311,26 @@ export class AuthService {
         "Your account has deactived. Please contact support",
       );
     }
+
+    let clinicContext: any = {};
+
+    if (user.lastActiveClinicId) {
+      const memebership = await this.clinicMemberRepo.findMemberShip(
+        user.id,
+        user.lastActiveClinicId,
+      );
+
+      if (memebership) {
+        clinicContext = {
+          clinicId: memebership.clinicId,
+          role: memebership.role,
+        };
+      }
+    }
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
+      ...clinicContext,
     });
 
     const refreshToken = generateRefreshToken();
@@ -339,12 +356,13 @@ export class AuthService {
     return {
       user: {
         id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName!,
+        lastName: user.lastName!,
         email: user.email,
       },
       accessToken,
       refreshToken,
+      activateClinic: clinicContext.clinicId ? true : false,
     };
   }
 
@@ -371,9 +389,19 @@ export class AuthService {
 
     let clinicContext = {};
 
-    // if(user.lastActiveClinicId){
-    //   const
-    // }
+    if (user.lastActiveClinicId) {
+      const membership = await this.clinicMemberRepo.findMemberShip(
+        user.id,
+        user.lastActiveClinicId,
+      );
+
+      if (membership) {
+        clinicContext = {
+          clinicId: membership.clinicId,
+          role: membership.role,
+        };
+      }
+    }
 
     const accessToken = generateAccessToken({
       userId: user.id,
@@ -383,8 +411,6 @@ export class AuthService {
 
     const newRefresh = generateRefreshToken();
     const newHashRefresh = hashRefreshToken(newRefresh);
-
-    const today = new Date();
 
     const newRefreshToken = await this.refreshTokenRepo.createRefreshToken({
       userId: user.id,
@@ -449,7 +475,7 @@ export class AuthService {
       await emailQueue.add("reset-password", {
         email: user.email,
         subject: "Forget Password Link",
-        html: resetPasswordEmailTemplate(resetUrl, user.firstName),
+        html: resetPasswordEmailTemplate(resetUrl, user.firstName!),
       });
     } catch (error: any) {
       logger.warn({ err: error }, "Failed to queue reset email");
@@ -495,16 +521,19 @@ export class AuthService {
     accessToken: string,
     refreshToken: string,
   ): Promise<IAuthMessage> {
-    const refresh = await this.refreshTokenRepo.findFirst({
-      where: {
-        tokenHash: hashRefreshToken(refreshToken),
-        revokedAt: null,
-        replaceByTokenId: null,
-        expiresAt: { gte: new Date() },
-      },
+    const refresh = await this.refreshTokenRepo.findRefreshToken({
+      tokenHash: hashRefreshToken(refreshToken),
     });
 
     if (!refresh) throw new BadRequestError("invalid or expired token");
+
+    if (
+      refresh.revokedAt ||
+      refresh.replaceByTokenId ||
+      new Date(refresh.expiresAt).getTime() <= Date.now()
+    ) {
+      throw new UnauthorizedError("Invalid, used or expired refresh token");
+    }
 
     await this.refreshTokenRepo.invalidateRefreshToken({
       id: refresh.id,
@@ -533,5 +562,45 @@ export class AuthService {
     return {
       message: "user has been logged out",
     };
+  }
+
+  async activateClinic(
+    userId: string,
+    clinicId: string,
+  ): Promise<IRefreshTokenResponse> {
+    const membership = await this.clinicMemberRepo.findMemberShip(
+      userId,
+      clinicId,
+    );
+
+    if (!membership)
+      throw new UnauthorizedError("You do not have access to this clinic");
+
+    const user = await this.authRepo.findUserById(userId);
+
+    if (!user) throw new NotFoundError("User not found");
+
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      clinicId: membership.clinicId,
+      role: membership.role,
+    });
+
+    const refreshToken = generateRefreshToken();
+    const hashRefresh = hashRefreshToken(refreshToken);
+
+    await this.refreshTokenRepo.createRefreshToken({
+      userId,
+      tokenHash: hashRefresh,
+      expiresAt: new Date(),
+    });
+
+    await this.authRepo.updateUserById({
+      id: user.id,
+      data: { lastActiveClinicId: clinicId },
+    });
+
+    return { accessToken, refreshToken };
   }
 }

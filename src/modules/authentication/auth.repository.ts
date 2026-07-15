@@ -17,6 +17,21 @@ export class AuthRepository extends BaseRepository<UserDelegate, User> {
     super(() => prisma.user);
   }
 
+  async createUser({
+    data,
+    select,
+  }: {
+    data: Prisma.UserCreateInput;
+    select: Prisma.Args<Prisma.UserDelegate, "create">["select"];
+  }): Promise<User> {
+    return this.create({
+      data: {
+        ...data,
+      },
+      select,
+    });
+  }
+
   async findUserById(userId: string): Promise<User | null> {
     return this.findFirst({
       where: {

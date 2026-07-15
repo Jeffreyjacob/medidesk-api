@@ -44,11 +44,18 @@ enum InvoiceStatus {
   VOID
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED 
+  EXPIRED
+}
+
 model User {
   id    String  @id @default(cuid())
   email  String  @unique
-  firstName  String
-  lastName   String
+  firstName  String ?
+  lastName   String ?
   passwordHash    String
   isActive    Boolean  @default(true)
   isEmailVerifed Boolean @default(false)
@@ -64,6 +71,7 @@ model User {
   passwordResets    PasswordResetToken[]
   emailVerifications   EmailVerificationOTP[]
   clinicMemberships    ClinicMember[]
+  clinicInvitation     ClinicInvitation[]
 }
 
 model RefreshToken {
@@ -124,6 +132,7 @@ model Clinic {
   deletedAt     DateTime?
 
   members   ClinicMember[]
+  invitations ClinicInvitation[]
   patients  Patient[]
   schedules  Schedule[]
   timeslots  TimeSlot[]
@@ -144,6 +153,25 @@ model ClinicMember {
   user     User     @relation(fields: [userId],references: [id])
   
   @@unique([clinicId,userId])
+}
+
+model ClinicInvitation {
+  id   String @id  @default(cuid())
+  clinicId  String
+  email     String
+  role      ClinicRole
+  tokenHash   String  @unique
+  invitedById  String
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  clinic     Clinic   @relation(fields: [clinicId],references: [id])
+  invitedBy  User     @relation(fields: [invitedById],references: [id])
+
+  @@index([clinicId])
+  @@index([email])
 }
 
 model Patient {

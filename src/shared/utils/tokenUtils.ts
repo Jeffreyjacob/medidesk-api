@@ -7,7 +7,12 @@ import { Response } from "express";
 
 export const generateAccessToken = (user: ITokenPayload): string => {
   return jwt.sign(
-    { userId: user.userId, email: user.email },
+    {
+      userId: user.userId,
+      email: user.email,
+      ...(user.clinicId && { clinicId: user.clinicId }),
+      ...(user.role && { role: user.role }),
+    },
     env.JWT_SECRET as string,
     {
       expiresIn: env.JWT_SECRET as string,
