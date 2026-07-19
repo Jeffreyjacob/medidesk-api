@@ -3,10 +3,13 @@ import {
   Clinic,
   ClinicInvitation,
   ClinicMember,
+  ClinicRole,
   InvitationStatus,
   Prisma,
 } from "../../generated/prisma/client";
+import { PrismaOrTx } from "../../shared/repository/baseRepository";
 import { TenantRepository } from "../../shared/repository/tenantRepository";
+import { IGetMembersInClinicInput } from "./clinic.validation";
 
 export class ClinicRepository extends TenantRepository<
   Prisma.ClinicDelegate,
@@ -16,12 +19,18 @@ export class ClinicRepository extends TenantRepository<
     super(() => prisma.clinic);
   }
 
-  async createClinic(data: Prisma.ClinicCreateInput): Promise<Clinic> {
-    return this.create({
-      data: {
-        ...data,
+  async createClinic(
+    data: Prisma.ClinicCreateInput,
+    tx: PrismaOrTx,
+  ): Promise<Clinic> {
+    return this.create(
+      {
+        data: {
+          ...data,
+        },
       },
-    });
+      tx,
+    );
   }
 
   async updateClinic({
@@ -39,7 +48,7 @@ export class ClinicRepository extends TenantRepository<
 
   async findClinicById(id: string): Promise<Clinic | null> {
     return this.findFirst({
-      where: { id },
+      where: { id, deletedAt: null },
     });
   }
 
@@ -52,6 +61,19 @@ export class ClinicRepository extends TenantRepository<
             patients: true,
             members: true,
             appointments: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            role: true,
           },
         },
       },
@@ -71,6 +93,26 @@ export class ClinicMemberRepository extends TenantRepository<
     super(() => prisma.clinicMember);
   }
 
+  async createMember(
+    data: {
+      userId: string;
+      role: ClinicRole;
+      clinicId: string;
+    },
+    tx?: PrismaOrTx,
+  ): Promise<ClinicMember> {
+    return this.create(
+      {
+        data: {
+          userId: data.userId,
+          clinicId: data.clinicId,
+          role: data.role,
+        },
+      },
+      tx,
+    );
+  }
+
   async findMemberShip(userId: string, clinicId: string) {
     return this.findOneInClinic({
       clinicId,
@@ -87,6 +129,62 @@ export class ClinicMemberRepository extends TenantRepository<
       include: { clinic: { select: { id: true, name: true } } },
     });
   }
+
+  async getAllMembersInClinic(
+    clinicId: string,
+    data: IGetMembersInClinicInput,
+  ) {
+    let where: Prisma.Args<Prisma.ClinicMemberDelegate, "findMany">["where"] = {
+      clinicId,
+    };
+
+    if (data.search) {
+      const search = data.search.trim();
+      where.OR = [
+        {
+          user: {
+            firstName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          user: {
+            email: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        },
+      ];
+    }
+
+    return this.findManyWithPagination({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      page: data.page,
+      pageSize: data.limit,
+    });
+  }
+
+  async findMemberById(clinicId: string, memberId: string) {
+    return this.findOneInClinic({
+      clinicId,
+      where: {
+        id: memberId,
+      },
+    });
+  }
 }
 
 export class ClinicInvitationRepository extends TenantRepository<
@@ -97,12 +195,22 @@ export class ClinicInvitationRepository extends TenantRepository<
     super(() => prisma.clinicInvitation);
   }
 
-  async createInvitation(
-    data: Prisma.ClinicInvitationCreateInput,
-  ): Promise<ClinicInvitation> {
+  async createInvitation(data: {
+    email: string;
+    clinicId: string;
+    role: ClinicRole;
+    tokenHash: string;
+    invitedBy: string;
+    expiresAt: Date;
+  }): Promise<ClinicInvitation> {
     return this.create({
       data: {
-        ...data,
+        email: data.email,
+        clinicId: data.clinicId,
+        role: data.role,
+        tokenHash: data.tokenHash,
+        invitedById: data.invitedBy,
+        expiresAt: data.expiresAt,
       },
     });
   }
@@ -172,10 +280,12 @@ export class ClinicInvitationRepository extends TenantRepository<
     id,
     clinicId,
     data,
+    tx,
   }: {
     id: string;
     clinicId: string;
     data: Prisma.ClinicInvitationUpdateInput;
+    tx?: PrismaOrTx;
   }) {
     return this.updateOneInClinic({
       clinicId,
@@ -183,6 +293,7 @@ export class ClinicInvitationRepository extends TenantRepository<
         id,
       },
       data,
+      tx,
     });
   }
 

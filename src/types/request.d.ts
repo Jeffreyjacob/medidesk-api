@@ -7,7 +7,7 @@ declare module "express-serve-static-core" {
     user?: {
       userId: string;
       email: string;
-      workspaceId?: string;
+      clinicId?: string;
       role?: string;
     };
   }

@@ -124,12 +124,14 @@ model Clinic {
   id     String  @id @default(cuid())
   name   String
   plan   ClinicPlan   @default(FREE)
+  address   String?
   webhooksEnabled   Boolean   @default(false)
   featureFlag     Json    @default("{}")
   stripeCustomerId     String?
   stripeSubscriptionId     String?
   createdAt     DateTime    @default(now())
   deletedAt     DateTime?
+  deactivate    Boolean    @default(false)
 
   members   ClinicMember[]
   invitations ClinicInvitation[]
@@ -166,6 +168,7 @@ model ClinicInvitation {
   expiresAt    DateTime
   acceptedAt   DateTime?
   createdAt    DateTime  @default(now())
+  expiryJobId  String?
 
   clinic     Clinic   @relation(fields: [clinicId],references: [id])
   invitedBy  User     @relation(fields: [invitedById],references: [id])

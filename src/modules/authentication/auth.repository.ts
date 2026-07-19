@@ -10,7 +10,10 @@ import {
   EmailVerificationOTPDelegate,
   UserDelegate,
 } from "../../generated/prisma/models";
-import { BaseRepository } from "../../shared/repository/baseRepository";
+import {
+  BaseRepository,
+  PrismaOrTx,
+} from "../../shared/repository/baseRepository";
 
 export class AuthRepository extends BaseRepository<UserDelegate, User> {
   constructor() {
@@ -20,16 +23,21 @@ export class AuthRepository extends BaseRepository<UserDelegate, User> {
   async createUser({
     data,
     select,
+    tx,
   }: {
     data: Prisma.UserCreateInput;
     select: Prisma.Args<Prisma.UserDelegate, "create">["select"];
+    tx?: PrismaOrTx;
   }): Promise<User> {
-    return this.create({
-      data: {
-        ...data,
+    return this.create(
+      {
+        data: {
+          ...data,
+        },
+        select,
       },
-      select,
-    });
+      tx,
+    );
   }
 
   async findUserById(userId: string): Promise<User | null> {
