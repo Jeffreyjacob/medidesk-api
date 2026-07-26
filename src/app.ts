@@ -11,11 +11,20 @@ import { nanoid } from "nanoid";
 import { HealthCheck } from "./shared/healthCheck/healthCheck";
 import { NotFoundMiddleware } from "./middleware/notFoundHandler";
 import { errorHandlerMiddleware } from "./middleware/errorHandler";
+import { registerAllListeners } from "./events/listeners";
+import authRoutes from "./modules/authentication/auth.routes";
+import clinicRoutes from "./modules/clinic/clinic.route";
 
 class App {
   public readonly express: Application;
   constructor() {
     this.express = express();
+    registerAllListeners();
+    this.setSecurityMiddleware();
+    this.setParsingMiddleware();
+    this.setLoggingMiddleware();
+    this.setRouteMiddlewares();
+    this.setErrorMiddleware();
   }
 
   setSecurityMiddleware() {
@@ -77,6 +86,8 @@ class App {
       const statusCode = health.status === "healthy" ? 200 : 503;
       res.status(statusCode).json(health);
     });
+    this.express.use("/api/v1/auth/", authRoutes);
+    this.express.use("/api/v1/clinic/", clinicRoutes);
   }
 
   setErrorMiddleware() {

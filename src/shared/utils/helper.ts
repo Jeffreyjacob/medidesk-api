@@ -1,5 +1,8 @@
+import { Request } from "express";
 import { redis } from "../../config/redis";
 import crypto from "crypto";
+import { UAParser } from "ua-parser-js";
+import geoip from "geoip-lite";
 
 export async function ensureIdempotency(jobId: String, workerType: string) {
   const key = `processed:${workerType}:${jobId}`;
@@ -26,4 +29,47 @@ export function generateInvitationToken() {
 
 export function hashInvitationToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+export const escapeHtml = (str: string): string =>
+  str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+interface DevicInfo {
+  browser: string;
+  os: string;
+  device: string;
+  ip: string;
+}
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string") {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+export function getDevicInfo(req: Request): DevicInfo {
+  const parser = new UAParser(req.headers["user-agent"]);
+  const result = parser.getResult();
+
+  return {
+    browser:
+      `${result.browser.name ?? "unknown"} ${result.browser.version ?? ""}`.trim(),
+    os: `${result.os.name ?? "unknowm"} ${result.os.version ?? ""}`.trim(),
+    device: result.device.type ?? "desktop",
+    ip: getClientIp(req),
+  };
+}
+
+export function getLocationFromIp(ip: string) {
+  const geo = geoip.lookup(ip);
+  return geo
+    ? {
+        country: geo.country,
+        region: geo.region,
+        city: geo.city,
+        ll: geo.ll,
+      }
+    : null;
 }

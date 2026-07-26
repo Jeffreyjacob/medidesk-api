@@ -1,6 +1,7 @@
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
 import { redis } from "../../config/redis";
+import { eventBus } from "../../events/eventBus";
 import { getEmailQueue } from "../../jobs/queues/email";
 import {
   BadRequestError,
@@ -98,7 +99,7 @@ export class AuthService {
     });
 
     const emailJob = getEmailQueue();
-    const url = `${env.FRONTEND_URL}/verifyEmail?${user.email}`;
+    const url = `${env.FRONTEND_URL}/verifyEmail?email=${user.email}`;
 
     try {
       await emailJob.add("email", {
@@ -283,6 +284,12 @@ export class AuthService {
             failedLoginAttempts: { increment: 1 },
             lockedUntil,
           },
+        });
+
+        eventBus.emit("user.account_locked", {
+          firstName: user.firstName!,
+          email: user.email,
+          unlockAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         });
 
         throw new UnauthorizedError(
@@ -486,7 +493,11 @@ export class AuthService {
     };
   }
 
-  async resetPassword(data: IResetPasswordInput): Promise<IAuthMessage> {
+  async resetPassword(
+    data: IResetPasswordInput,
+    device: string,
+    location: { city: string; country: string },
+  ): Promise<IAuthMessage> {
     const user = await this.authRepo.findByEmail(data.email);
     if (!user) throw new NotFoundError("User not found");
     const resetToken = await this.passwordResetRepo.findPasswordToken({
@@ -510,6 +521,14 @@ export class AuthService {
       data: {
         passwordHash,
       },
+    });
+
+    eventBus.emit("user.password_reset", {
+      email: user.email,
+      firstName: user.firstName!,
+      changedAt: new Date().toISOString(),
+      deviceInfo: device,
+      location: `${location.city}, ${location.country}`,
     });
 
     return {

@@ -46,10 +46,7 @@ import {
 } from "./clinic.validation";
 import { OffsetPaginationResponse } from "../../shared/repository/baseRepository";
 import bcrypt from "bcryptjs";
-import {
-  buildExistingUserAddedEmail,
-  buildNewUserWelcomeEmail,
-} from "../../shared/utils/email/welcomeEmail";
+import { eventBus } from "../../events/eventBus";
 
 export class ClinicService {
   constructor(
@@ -60,7 +57,7 @@ export class ClinicService {
   ) {}
 
   async createClinic(userId: string, data: ICreateClinicInput) {
-    return prisma.$transaction(async (tx) => {
+    const clinic = await prisma.$transaction(async (tx) => {
       const clinic = await this.clinicRepo.createClinic(data, tx);
 
       await this.clinicMemberRepo.createMember(
@@ -74,6 +71,16 @@ export class ClinicService {
 
       return clinic;
     });
+
+    eventBus.emit("clinic.created", {
+      clinic: {
+        id: clinic.id,
+        name: clinic.name,
+      },
+      createdBy: userId,
+    });
+
+    return clinic;
   }
 
   async getUserClinics(userId: string) {
@@ -165,7 +172,11 @@ export class ClinicService {
     memberId: string,
     clinicId: string,
     data: IUpdateMemberRoleInput,
+    userId: string,
   ): Promise<ClinicMember | null> {
+    const user = await this.userRepo.findUserById(userId);
+    if (!user) throw new NotFoundError("unable to find user");
+
     const clinic = await this.clinicRepo.findClinicById(clinicId);
     if (!clinic) throw new NotFoundError("unable to find clinic");
 
@@ -175,6 +186,8 @@ export class ClinicService {
     );
 
     if (!member) throw new NotFoundError("unable to find member");
+
+    const memberInfo = await this.userRepo.findUserById(member.userId);
 
     if (member.role === data.role)
       throw new BadRequestError(
@@ -211,10 +224,35 @@ export class ClinicService {
       },
     });
 
+    eventBus.emit("member.role_changed", {
+      member: {
+        userId: member.userId,
+        email: memberInfo?.email!,
+        name: memberInfo?.firstName!,
+      },
+      clinic: {
+        id: clinic.id,
+        name: clinic.name,
+      },
+      previousRole: member.role,
+      newRole: data.role,
+      changedBy: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+      },
+    });
+
     return update;
   }
 
-  async deleteClinicMember(clinicId: string, memberId: string): Promise<void> {
+  async deleteClinicMember(
+    clinicId: string,
+    memberId: string,
+    userId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findUserById(userId);
+    if (!user) throw new NotFoundError("unable to find user");
+
     const clinic = await this.clinicRepo.findClinicById(clinicId);
     if (!clinic) throw new NotFoundError("unable to find clinic");
 
@@ -225,6 +263,8 @@ export class ClinicService {
 
     if (!member) throw new NotFoundError("unable to find member");
 
+    const memberInfo = await this.userRepo.findUserById(member.userId);
+
     if (member.role === ClinicRole.OWNER)
       throw new BadRequestError("You can't remove an owner from clinic");
 
@@ -233,6 +273,23 @@ export class ClinicService {
       where: {
         id: memberId,
       },
+    });
+
+    eventBus.emit("member.removed", {
+      member: {
+        userId: member.userId,
+        email: memberInfo?.email!,
+        name: memberInfo?.firstName!,
+      },
+      clinic: {
+        id: clinic.id,
+        name: clinic.name,
+      },
+      removedBy: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+      },
+      role: member.role,
     });
   }
 
@@ -357,6 +414,22 @@ export class ClinicService {
       }
     }
 
+    eventBus.emit("member.invited", {
+      invite: {
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        expiresAt: invitation.expiresAt.toISOString(),
+      },
+      clinic: { id: clinic.id, name: clinic.name },
+      invitedBy: {
+        id: user.id,
+        firstName: user.firstName!,
+        lastName: user.lastName!,
+        email: user.email,
+      },
+    });
+
     return invitation;
   }
 
@@ -399,6 +472,7 @@ export class ClinicService {
   async revokeInvitation(
     clinicId: string,
     invitationId: string,
+    userId: string,
   ): Promise<ClinicInvitation> {
     const invitation = await this.clinicInvitationRepo.findInvitationById({
       id: invitationId,
@@ -436,6 +510,16 @@ export class ClinicService {
     });
 
     if (!updated) throw new BadRequestError("unable to revoke invitation");
+
+    eventBus.emit("member.invitation_revoked", {
+      invite: {
+        id: updated.id,
+        email: updated.email,
+        role: updated.role,
+      },
+      revokedBy: userId,
+      clinicId: updated.clinicId,
+    });
 
     return updated;
   }
@@ -495,20 +579,6 @@ export class ClinicService {
           tx,
         });
       });
-
-      try {
-        await emailjob.add("email", {
-          email: user?.email,
-          subject: `You've been added to a new clinic: ${clinic?.name}`,
-          html: buildNewUserWelcomeEmail({
-            firstName: user?.firstName!,
-            clinicName: clinic?.name!,
-            loginUrl: `${env.FRONTEND_URL}/login`,
-          }),
-        });
-      } catch (error: any) {
-        logger.warn({ error }, "unable to add welcome email to email queue");
-      }
     } else {
       if (!data.firstName || !data.lastName || !data.password)
         throw new BadRequestError(
@@ -553,22 +623,19 @@ export class ClinicService {
 
         return user;
       });
-
-      try {
-        await emailjob.add("email", {
-          email: user?.email,
-          subject: `You've been added to a new clinic: ${clinic?.name}`,
-          html: buildExistingUserAddedEmail({
-            firstName: user?.firstName!,
-            clinicName: clinic?.name!,
-            role: invitation.role,
-            dashboardUrl: `${env.FRONTEND_URL}/dashboard`,
-          }),
-        });
-      } catch (error: any) {
-        logger.warn({ error }, "unable to add welcome email to email queue");
-      }
     }
+
+    eventBus.emit("member.invitation_accepted", {
+      member: {
+        userId: user?.id!,
+        email: user?.email!,
+        name: `${user?.firstName} ${user?.lastName}`,
+        clinicId: clinic?.id!,
+        role: invitation.role,
+      },
+      clinic: { id: clinic?.id!, name: clinic?.name! },
+      wasNewUser: !checkIfUserAlreadyExist ? true : false,
+    });
 
     if (invitation.expiryJobId) {
       const expiryJob = getInviteExpiryEmail();

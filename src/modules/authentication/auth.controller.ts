@@ -12,6 +12,7 @@ import {
 import { ResponseHelper } from "../../shared/utils/apiResponse";
 import { setRefreshTokenCookie } from "../../shared/utils/tokenUtils";
 import { env } from "../../config/env";
+import { getDevicInfo, getLocationFromIp } from "../../shared/utils/helper";
 
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -70,7 +71,13 @@ export class AuthController {
 
   async resetPassword(req: Request, res: Response): Promise<void> {
     const data = resetPasswordSchema.parse(req.body);
-    const result = await this.authService.resetPassword(data);
+    const deviceInfo = getDevicInfo(req);
+    const location = getLocationFromIp(deviceInfo.ip);
+    const result = await this.authService.resetPassword(
+      data,
+      deviceInfo.device,
+      { city: location?.city!, country: location?.country! },
+    );
     ResponseHelper.success(res, "", 200, result.message);
   }
 

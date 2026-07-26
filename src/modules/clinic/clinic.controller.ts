@@ -72,6 +72,7 @@ export class ClinicController {
       memberId,
       clinicId,
       data,
+      req.user?.userId!,
     );
     req.log?.info(
       {
@@ -92,7 +93,11 @@ export class ClinicController {
   async deleteMemberFromClinic(req: Request, res: Response): Promise<void> {
     const clinicId = req.user?.clinicId!;
     const memberId = req.params.id as string;
-    await this.service.deleteClinicMember(clinicId, memberId);
+    await this.service.deleteClinicMember(
+      clinicId,
+      memberId,
+      req.user?.userId!,
+    );
     req.log?.info(
       { memberId, clinicId, deletedBy: req.user?.userId },
       "member deleted from clinic",
@@ -125,7 +130,11 @@ export class ClinicController {
   async revokeInvitation(req: Request, res: Response): Promise<void> {
     const clinicId = req.user?.clinicId!;
     const invitationId = req.params.id as string;
-    const result = await this.service.revokeInvitation(clinicId, invitationId);
+    const result = await this.service.revokeInvitation(
+      clinicId,
+      invitationId,
+      req.user?.userId!,
+    );
     req.log?.info(
       { clinicId, invitationId, revokedBy: req.user?.userId },
       "invitation has been revoked",
