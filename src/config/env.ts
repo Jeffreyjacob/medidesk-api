@@ -14,7 +14,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
   JWT_SECRET: z.string().min(10),
-  JWT_EXPIRES_IN: z.coerce.number().default(15),
+  JWT_EXPIRES_IN: z.string().default("15m"),
   REFRESH_TOKEN_SECRET: z.string().min(16),
   REFRESH_TOKEN_NAME: z.string().default("medi_dev_refresh_token"),
   REFRESH_TOKEN_EXPIRES_IN: z.coerce.number().default(7),

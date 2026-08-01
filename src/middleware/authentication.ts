@@ -43,5 +43,6 @@ export const requireRole = (...roles: string[]) => {
         `This action requires one of these roles: ${roles.join(",")}`,
       );
     }
+    next();
   };
 };

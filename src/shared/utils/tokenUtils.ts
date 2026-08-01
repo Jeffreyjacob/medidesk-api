@@ -15,7 +15,7 @@ export const generateAccessToken = (user: ITokenPayload): string => {
     },
     env.JWT_SECRET as string,
     {
-      expiresIn: env.JWT_SECRET as string,
+      expiresIn: env.JWT_EXPIRES_IN as string,
       issuer: "medidesk_api",
       audience: "medidesk-client",
     } as jwt.SignOptions,

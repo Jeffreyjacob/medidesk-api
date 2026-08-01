@@ -594,6 +594,7 @@ export class ClinicService {
             passwordHash,
             firstName: data.firstName,
             lastName: data.lastName,
+            isEmailVerifed: true,
           },
           select: {
             id: true,
@@ -634,7 +635,7 @@ export class ClinicService {
         role: invitation.role,
       },
       clinic: { id: clinic?.id!, name: clinic?.name! },
-      wasNewUser: !checkIfUserAlreadyExist ? true : false,
+      wasNewUser: checkIfUserAlreadyExist ? false : true,
     });
 
     if (invitation.expiryJobId) {

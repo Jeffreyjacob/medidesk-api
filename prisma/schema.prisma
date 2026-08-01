@@ -52,7 +52,7 @@ enum InvitationStatus {
 }
 
 model User {
-  id    String  @id @default(cuid())
+  id    String  @id @default(uuid())
   email  String  @unique
   firstName  String ?
   lastName   String ?
@@ -75,7 +75,7 @@ model User {
 }
 
 model RefreshToken {
-  id     String   @id @default(cuid())
+  id     String   @id @default(uuid())
   userId  String
   tokenHash   String  @unique
   deviceInfo  String?
@@ -92,7 +92,7 @@ model RefreshToken {
 }
 
 model PasswordResetToken {
-  id    String   @id  @default(cuid())
+  id    String   @id  @default(uuid())
   userId   String
   tokenHash   String
   expiresAt   DateTime
@@ -106,7 +106,7 @@ model PasswordResetToken {
 }
 
 model EmailVerificationOTP {
-  id     String   @id  @default(cuid())
+  id     String   @id  @default(uuid())
   userId   String
   codeHash   String
   attempts   Int    @default(0)
@@ -121,7 +121,7 @@ model EmailVerificationOTP {
 }
 
 model Clinic {
-  id     String  @id @default(cuid())
+  id     String  @id @default(uuid())
   name   String
   plan   ClinicPlan   @default(FREE)
   address   String?
@@ -145,7 +145,7 @@ model Clinic {
 }
 
 model ClinicMember {
-  id     String    @id  @default(cuid())
+  id     String    @id  @default(uuid())
   clinicId    String
   userId     String
   role    ClinicRole
@@ -158,7 +158,7 @@ model ClinicMember {
 }
 
 model ClinicInvitation {
-  id   String @id  @default(cuid())
+  id   String @id  @default(uuid())
   clinicId  String
   email     String
   role      ClinicRole
@@ -178,7 +178,7 @@ model ClinicInvitation {
 }
 
 model Patient {
-  id     String  @id @default(cuid())
+  id     String  @id @default(uuid())
   clinicId  String
   firstName  String
   lastName   String
@@ -197,7 +197,7 @@ model Patient {
 }
 
 model Schedule {
-  id     String  @id @default(cuid())
+  id     String  @id @default(uuid())
   clinicId  String
   doctorId  String
   dayOfWeek  Int
@@ -210,7 +210,7 @@ model Schedule {
 }
 
 model TimeSlot {
-  id     String   @id  @default(cuid())
+  id     String   @id  @default(uuid())
   clinicId  String
   doctorId  String
   startsAt  DateTime
@@ -228,7 +228,7 @@ model TimeSlot {
 
 
 model Appointment {
-  id     String   @id @default(cuid())
+  id     String   @id @default(uuid())
   clinicId   String
   timeSlotId  String   @unique
   patientId   String
@@ -246,7 +246,7 @@ model Appointment {
 }
 
 model MedicalRecord {
-  id    String   @id @default(cuid())
+  id    String   @id @default(uuid())
   appointmentId   String  @unique
   notes      String
   diagnosis   String?
@@ -259,7 +259,7 @@ model MedicalRecord {
 }
 
 model Invoice {
-  id   String   @id  @default(cuid())
+  id   String   @id  @default(uuid())
   clinicId   String
   appointmentId  String   @unique
   amountCents    Int
@@ -273,7 +273,7 @@ model Invoice {
 
 
 model WebhookEndpoint {
-  id    String   @id  @default(cuid())
+  id    String   @id  @default(uuid())
   clinicId  String
   url     String
   secret   String 
@@ -286,7 +286,7 @@ model WebhookEndpoint {
 }
 
 model WebhookDelivery {
-  id   String    @id @default(cuid())
+  id   String    @id @default(uuid())
   endpointId   String
   event        String
   payload      Json
@@ -301,7 +301,7 @@ model WebhookDelivery {
 }
 
 model  AuditLog {
-  id   String    @id @default(cuid())
+  id   String    @id @default(uuid())
   clinicId  String
   actorId   String?
   action    String
@@ -312,7 +312,7 @@ model  AuditLog {
 }
 
 model Notification {
-  id   String   @id @default(cuid())
+  id   String   @id @default(uuid())
   userId   String
   type     String
   payload  Json

@@ -586,6 +586,7 @@ export class AuthService {
   async activateClinic(
     userId: string,
     clinicId: string,
+    token: string,
   ): Promise<IRefreshTokenResponse> {
     const membership = await this.clinicMemberRepo.findMemberShip(
       userId,
@@ -598,6 +599,11 @@ export class AuthService {
     const user = await this.authRepo.findUserById(userId);
 
     if (!user) throw new NotFoundError("User not found");
+
+    const currenthashRefresh = hashRefreshToken(token);
+    const currentRefreshToken = await this.refreshTokenRepo.findRefreshToken({
+      tokenHash: currenthashRefresh,
+    });
 
     const accessToken = generateAccessToken({
       userId: user.id,
@@ -612,8 +618,18 @@ export class AuthService {
     await this.refreshTokenRepo.createRefreshToken({
       userId,
       tokenHash: hashRefresh,
-      expiresAt: new Date(),
+      expiresAt: new Date(
+        Date.now() + env.REFRESH_TOKEN_EXPIRES_IN * 24 * 60 * 60 * 1000,
+      ),
     });
+
+    if (currentRefreshToken) {
+      await this.refreshTokenRepo.invalidateRefreshToken({
+        id: currentRefreshToken.id,
+        replaceByTokenId: currentRefreshToken.id,
+        revokedAt: new Date(),
+      });
+    }
 
     await this.authRepo.updateUserById({
       id: user.id,

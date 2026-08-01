@@ -1,6 +1,5 @@
 import z from "zod";
 import { ClinicRole, InvitationStatus } from "../../generated/prisma/enums";
-import { passwordSchema } from "../authentication/auth.validation";
 
 export const createClinicSchema = z.object({
   name: z.string().min(1, "Clinic name is required"),
@@ -37,7 +36,13 @@ export const getInvitationsSchema = z.object({
 export const acceptInvitationSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  password: passwordSchema,
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[!@#$%^&*]/, "Password must contain at least one special character")
+    .optional(),
 });
 
 export type ICreateClinicInput = z.infer<typeof createClinicSchema>;

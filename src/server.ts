@@ -20,7 +20,7 @@ export async function startServer(): Promise<void> {
       );
     });
 
-    const gracefullShutDown = (signal: string) => {
+    const gracefullShutDown = (signal: string): void => {
       logger.info({ signal }, "starting shut down");
       const forceExiter = setTimeout(() => {
         logger.info("shutting down with force exit");

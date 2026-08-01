@@ -16,7 +16,7 @@ export class ClinicRepository extends TenantRepository<
   Clinic
 > {
   constructor() {
-    super(() => prisma.clinic);
+    super((client) => client.clinic);
   }
 
   async createClinic(
@@ -90,7 +90,7 @@ export class ClinicMemberRepository extends TenantRepository<
   ClinicMember
 > {
   constructor() {
-    super(() => prisma.clinicMember);
+    super((client) => client.clinicMember);
   }
 
   async createMember(
@@ -192,7 +192,7 @@ export class ClinicInvitationRepository extends TenantRepository<
   ClinicInvitation
 > {
   constructor() {
-    super(() => prisma.clinicInvitation);
+    super((client) => client.clinicInvitation);
   }
 
   async createInvitation(data: {

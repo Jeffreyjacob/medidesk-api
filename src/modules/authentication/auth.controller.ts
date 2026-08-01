@@ -91,9 +91,11 @@ export class AuthController {
 
   async activateClinic(req: Request, res: Response): Promise<void> {
     const clinicId = req.params.clinicId as string;
+    const refresh = req.cookies[env.REFRESH_TOKEN_NAME];
     const result = await this.authService.activateClinic(
       req.user?.userId!,
       clinicId,
+      refresh,
     );
     req.log?.info({ userId: req.user?.userId, clinicId }, "Clinic activated");
     const { accessToken, refreshToken } = result;

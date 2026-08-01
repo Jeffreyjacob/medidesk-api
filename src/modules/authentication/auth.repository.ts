@@ -17,7 +17,7 @@ import {
 
 export class AuthRepository extends BaseRepository<UserDelegate, User> {
   constructor() {
-    super(() => prisma.user);
+    super((client) => client.user);
   }
 
   async createUser({
@@ -72,7 +72,7 @@ export class EmailVerificationRespository extends BaseRepository<
   EmailVerificationOTP
 > {
   constructor() {
-    super(() => prisma.emailVerificationOTP);
+    super((client) => client.emailVerificationOTP);
   }
 
   async createOtp(args: {
