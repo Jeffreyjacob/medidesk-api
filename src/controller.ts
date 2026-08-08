@@ -1,3 +1,4 @@
+import { stripe } from "./config/stripe";
 import { AuthController } from "./modules/authentication/auth.controller";
 import {
   AuthRepository,
@@ -6,6 +7,13 @@ import {
   RefreshTokenRepository,
 } from "./modules/authentication/auth.repository";
 import { AuthService } from "./modules/authentication/auth.service";
+import { BillingController } from "./modules/billing/billing.controller";
+import {
+  BillingHistoryRepository,
+  StripeWebhookEventRepository,
+  SubcriptionRepository,
+} from "./modules/billing/billing.repository";
+import { BillingService } from "./modules/billing/billing.service";
 import { ClinicController } from "./modules/clinic/clinic.controller";
 import {
   ClinicInvitationRepository,
@@ -21,6 +29,9 @@ const refreshTokenRepo = new RefreshTokenRepository();
 const clinicRepo = new ClinicRepository();
 const clinicMemberRepo = new ClinicMemberRepository();
 export const clinicInvitationRepo = new ClinicInvitationRepository();
+const subscriptionRepo = new SubcriptionRepository();
+const billingHistoryRepo = new BillingHistoryRepository();
+const stripeWebhookEventRepo = new StripeWebhookEventRepository();
 
 const authService = new AuthService(
   authRepo,
@@ -35,6 +46,16 @@ const clinicService = new ClinicService(
   clinicInvitationRepo,
   authRepo,
 );
+const billingService = new BillingService(
+  clinicRepo,
+  stripeWebhookEventRepo,
+  subscriptionRepo,
+  billingHistoryRepo,
+  authRepo,
+  clinicMemberRepo,
+  stripe,
+);
 
 export const authController = new AuthController(authService);
 export const clinicController = new ClinicController(clinicService);
+export const billingController = new BillingController(billingService);

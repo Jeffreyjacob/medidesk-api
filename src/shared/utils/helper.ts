@@ -3,6 +3,7 @@ import { redis } from "../../config/redis";
 import crypto from "crypto";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
+import { AppError } from "../errors";
 
 export async function ensureIdempotency(jobId: String, workerType: string) {
   const key = `processed:${workerType}:${jobId}`;
@@ -72,4 +73,49 @@ export function getLocationFromIp(ip: string) {
         ll: geo.ll,
       }
     : null;
+}
+
+export function isTransientError(err: Error): boolean {
+  const transientMessage = [
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "socket hang up",
+    "SMTP",
+  ];
+
+  return transientMessage.some((msg) =>
+    err.message.toLocaleUpperCase().includes(msg.toLocaleUpperCase()),
+  );
+}
+
+export function isPermanentError(err: Error): boolean {
+  if (err instanceof AppError) {
+    return true;
+  }
+  return false;
+}
+
+export function classifyError(
+  err: Error,
+): "transient" | "permanent" | "unknown" {
+  if (isTransientError(err)) return "transient";
+  if (err instanceof AppError) {
+    switch (err.statusCode) {
+      case 400:
+      case 422:
+      case 404:
+      case 409:
+      case 403:
+        return "permanent";
+      case 401:
+      case 429:
+        return "transient";
+      case 500:
+        return "transient";
+      default:
+        return "unknown";
+    }
+  }
+  return "unknown";
 }

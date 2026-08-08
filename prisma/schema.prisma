@@ -51,6 +51,27 @@ enum InvitationStatus {
   EXPIRED
 }
 
+enum WebhookEventStatus {
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+  TRIALING
+  INCOMPLETE
+}
+
+enum PaymentStatus {
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
 model User {
   id    String  @id @default(uuid())
   email  String  @unique
@@ -63,6 +84,7 @@ model User {
   lockedUntil   DateTime? 
   lastLoginAt   DateTime?
   lastActiveClinicId  String?
+  stripeCustomerId     String?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime @updatedAt
@@ -127,11 +149,11 @@ model Clinic {
   address   String?
   webhooksEnabled   Boolean   @default(false)
   featureFlag     Json    @default("{}")
-  stripeCustomerId     String?
   stripeSubscriptionId     String?
   createdAt     DateTime    @default(now())
   deletedAt     DateTime?
   deactivate    Boolean    @default(false)
+  lastStripeEventAt      DateTime?  
 
   members   ClinicMember[]
   invitations ClinicInvitation[]
@@ -142,6 +164,8 @@ model Clinic {
   invoices     Invoice[]
   webhookEndpoints  WebhookEndpoint[]
   auditLogs    AuditLog[]
+  subscription Subscription?
+  billingHistory  BillingHistory[]
 }
 
 model ClinicMember {
@@ -271,6 +295,45 @@ model Invoice {
   appointment   Appointment  @relation(fields: [appointmentId],references: [id])
 }
 
+model BillingHistory {
+  id   String  @id  @default(uuid())
+  clinicId String
+  clinic   Clinic  @relation(fields: [clinicId],references: [id])
+  subscriptionId   String
+  subscription   Subscription @relation(fields: [subscriptionId],references: [id])
+  stripeInvoiceId  String   @unique
+  currencu        String   @default("usd")
+  status          PaymentStatus  @default(SUCCEEDED)
+  description     String?
+  invoiceUrl      String?
+  createdAt       DateTime   @default(now())
+
+  @@index([clinicId])
+  @@index([subscriptionId])
+}
+
+model Subscription {
+  id   String  @id @default(uuid())
+  clinicId    String  @unique
+  clinic      Clinic   @relation(fields: [clinicId],references: [id],onDelete: Cascade)
+  stripeSubscriptionId   String  @unique
+  quantity              Int    
+  status    SubscriptionStatus   @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelledAt          DateTime?
+  cancelAtPeriodEnd    Boolean
+  lastEventTimeStamp   DateTime?
+  createdAt            DateTime  @default(now()) 
+  updatedAt            DateTime  @updatedAt
+ 
+  billingHistory  BillingHistory[]
+
+  @@index([clinicId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
 
 model WebhookEndpoint {
   id    String   @id  @default(uuid())
@@ -320,3 +383,18 @@ model Notification {
   createdAt  DateTime  @default(now())
 }
 
+
+model StripeWebhookEvent {
+  id   String @id @default(uuid())
+  stripeEventId   String  @unique
+  eventType       String
+  status          WebhookEventStatus  @default(PROCESSING)
+  payload         Json
+  error           String?
+  attempts        Int    @default(1)
+  processedAt     DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([status])
+  @@index([eventType])
+}

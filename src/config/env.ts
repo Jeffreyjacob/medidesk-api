@@ -21,6 +21,7 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().default(10),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  STRIPE_PRICE_ID_PER_SEAT: z.string().min(25),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().min(1),
