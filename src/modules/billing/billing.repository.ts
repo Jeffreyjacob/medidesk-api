@@ -46,7 +46,7 @@ export class SubcriptionRepository extends BaseRepository<
     status: SubscriptionStatus;
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
-    quatity: number;
+    quantity: number;
     lastStripeEventAt: Date;
   }) {
     return this.create({
@@ -57,7 +57,7 @@ export class SubcriptionRepository extends BaseRepository<
         currentPeriodEnd: data.currentPeriodEnd,
         currentPeriodStart: data.currentPeriodStart,
         cancelAtPeriodEnd: false,
-        quantity: data.quatity,
+        quantity: data.quantity,
         lastEventTimeStamp: data.lastStripeEventAt,
       },
     });

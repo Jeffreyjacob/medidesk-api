@@ -46,7 +46,7 @@ const clinicService = new ClinicService(
   clinicInvitationRepo,
   authRepo,
 );
-const billingService = new BillingService(
+export const billingService = new BillingService(
   clinicRepo,
   stripeWebhookEventRepo,
   subscriptionRepo,

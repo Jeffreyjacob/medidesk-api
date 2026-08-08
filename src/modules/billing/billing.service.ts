@@ -118,11 +118,12 @@ export class BillingService {
     clinicId: string,
   ): Promise<{ plan: ClinicPlan; subscription: Subscription | null }> {
     const subscription = await this.subscriptionRepo.findByClinicId(clinicId);
-    if (!subscription) {
-      return { plan: ClinicPlan.FREE, subscription: null };
-    }
-
-    return { plan: ClinicPlan.PRO, subscription: subscription };
+    if (!subscription) return { plan: ClinicPlan.FREE, subscription: null };
+    const plan =
+      subscription.status === SubscriptionStatus.ACTIVE
+        ? ClinicPlan.PRO
+        : ClinicPlan.FREE;
+    return { plan, subscription };
   }
 
   async cancelSubscription(clinicId: string) {
@@ -170,7 +171,7 @@ export class BillingService {
       clinicId,
       stripeSubscriptionId: subscription.id,
       status: SubscriptionStatus.ACTIVE,
-      quatity: item.quantity ?? 1,
+      quantity: item.quantity ?? 1,
       currentPeriodEnd: new Date(item.current_period_end * 1000),
       currentPeriodStart: new Date(item.current_period_start * 1000),
       lastStripeEventAt: new Date(),
@@ -196,11 +197,12 @@ export class BillingService {
         { subId: subscription.id },
         "Got update for unknown subscription",
       );
+      return;
     }
 
     if (
       existing?.lastEventTimeStamp &&
-      eventCreatedAt <= existing.lastEventTimeStamp.getTime()
+      eventCreatedAt <= existing.lastEventTimeStamp.getTime() / 1000
     ) {
       logger.warn(
         { subId: subscription.id },
@@ -450,5 +452,35 @@ export class BillingService {
       logger.error({ eventId }, "replay webhook Event Replay failed");
       throw new BadRequestError(err);
     }
+  }
+  async syncSeatCount(clinicId: string): Promise<void> {
+    const subscription = await this.subscriptionRepo.findByClinicId(clinicId);
+
+    if (!subscription || subscription.status !== SubscriptionStatus.ACTIVE)
+      return;
+
+    const trueDoctorCount = await this.clinicMemberRepo.countInClinic({
+      clinicId,
+      where: { role: ClinicRole.DOCTOR },
+    });
+
+    if (trueDoctorCount === subscription.quantity) return;
+
+    const stripeSubcription = await this.stripe.subscriptions.retrieve(
+      subscription.stripeSubscriptionId,
+    );
+    const itemId = stripeSubcription.items.data[0].id;
+
+    await this.stripe.subscriptionItems.update(itemId, {
+      quantity: trueDoctorCount,
+      proration_behavior: "create_prorations",
+    });
+
+    await this.subscriptionRepo.updateSubscription(
+      {
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+      },
+      { quantity: trueDoctorCount },
+    );
   }
 }
