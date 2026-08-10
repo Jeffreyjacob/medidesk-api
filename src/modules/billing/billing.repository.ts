@@ -27,8 +27,14 @@ export class SubcriptionRepository extends BaseRepository<
   }
 
   findByClinicId(clinicId: string): Promise<Subscription | null> {
-    return this.findUnique({
-      where: { clinicId },
+    return this.findFirst({
+      where: {
+        clinicId,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE],
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
   }
 

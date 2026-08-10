@@ -139,7 +139,7 @@ export class BillingService {
 
     await this.subscriptionRepo.updateSubscription(
       {
-        clinicId,
+        id: subscription.id,
       },
       {
         cancelledAt: new Date(),
@@ -166,16 +166,27 @@ export class BillingService {
     const subscription =
       await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
     const item = subscription.items.data[0];
-
-    await this.subscriptionRepo.createSubscription({
-      clinicId,
-      stripeSubscriptionId: subscription.id,
-      status: SubscriptionStatus.ACTIVE,
-      quantity: item.quantity ?? 1,
-      currentPeriodEnd: new Date(item.current_period_end * 1000),
-      currentPeriodStart: new Date(item.current_period_start * 1000),
-      lastStripeEventAt: new Date(),
-    });
+    try {
+      await this.subscriptionRepo.createSubscription({
+        clinicId,
+        stripeSubscriptionId: subscription.id,
+        status: SubscriptionStatus.ACTIVE,
+        quantity: item.quantity ?? 1,
+        currentPeriodEnd: new Date(item.current_period_end * 1000),
+        currentPeriodStart: new Date(item.current_period_start * 1000),
+        lastStripeEventAt: new Date(),
+      });
+    } catch (err: any) {
+      if (err.code === "P2002") {
+        logger.error(
+          { clinicId, stripeSubscriptionId: subscription.id },
+          "Duplicate active subscription detected - cancelling the new one",
+        );
+        await this.stripe.subscriptions.cancel(subscription.id);
+        return;
+      }
+      throw err;
+    }
 
     await this.syncClinicPlanFromSubscriptionStatus(
       clinicId,

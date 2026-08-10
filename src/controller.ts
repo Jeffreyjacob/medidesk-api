@@ -26,10 +26,10 @@ const authRepo = new AuthRepository();
 const emailVerificationRepo = new EmailVerificationRespository();
 const passwordResetTokenRepo = new PasswordResetTokenRepository();
 const refreshTokenRepo = new RefreshTokenRepository();
-const clinicRepo = new ClinicRepository();
-const clinicMemberRepo = new ClinicMemberRepository();
+export const clinicRepo = new ClinicRepository();
+export const clinicMemberRepo = new ClinicMemberRepository();
 export const clinicInvitationRepo = new ClinicInvitationRepository();
-const subscriptionRepo = new SubcriptionRepository();
+export const subscriptionRepo = new SubcriptionRepository();
 const billingHistoryRepo = new BillingHistoryRepository();
 const stripeWebhookEventRepo = new StripeWebhookEventRepository();
 

@@ -1,6 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import { ForbiddenError, UnauthorizedError } from "../shared/errors";
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../shared/errors";
 import { verifyAccessToken } from "../shared/utils/tokenUtils";
+import { clinicRepo } from "../controller";
+import { ClinicPlan } from "../generated/prisma/enums";
 
 export const authenticate = (
   req: Request,
@@ -41,6 +48,24 @@ export const requireRole = (...roles: string[]) => {
     if (!roles.includes(req.user.role)) {
       throw new ForbiddenError(
         `This action requires one of these roles: ${roles.join(",")}`,
+      );
+    }
+    next();
+  };
+};
+
+export const requirePro = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const clinicId = req.user?.clinicId!;
+    const clinic = await clinicRepo.findClinicById(clinicId);
+    if (!clinic) {
+      return next(new NotFoundError("clinic not found"));
+    }
+    if (clinic.plan !== ClinicPlan.PRO) {
+      return next(
+        new BadRequestError(
+          "this feature requires a PRO subscription, please upgrade",
+        ),
       );
     }
     next();

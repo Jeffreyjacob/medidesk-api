@@ -5,6 +5,7 @@ import { clinicInvitationRepo } from "./controller";
 import { createEmailWorker } from "./jobs/workers/email";
 import { createInviteExpiryWorker } from "./jobs/workers/inviteExpiry";
 import { disconnectRedis } from "./config/redis";
+import { createReconcileSubscriptionWorker } from "./jobs/workers/reconcile-subcription";
 
 export async function startWorker() {
   try {
@@ -12,6 +13,7 @@ export async function startWorker() {
     await prisma.$connect();
     const emailWorker = createEmailWorker();
     const inviteExpiryWorker = createInviteExpiryWorker(clinicInvitationRepo);
+    const reconcileSubscriptionWorker = createReconcileSubscriptionWorker();
 
     const gracefulShutdown = async (signal: string) => {
       logger.info("starting graceful shutdown...");
@@ -27,6 +29,7 @@ export async function startWorker() {
         await prisma.$disconnect();
         await emailWorker.close();
         await inviteExpiryWorker.close();
+        await reconcileSubscriptionWorker.close();
         await disconnectRedis();
         process.exit(0);
       } catch (error: any) {

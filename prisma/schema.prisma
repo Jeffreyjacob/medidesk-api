@@ -164,7 +164,7 @@ model Clinic {
   invoices     Invoice[]
   webhookEndpoints  WebhookEndpoint[]
   auditLogs    AuditLog[]
-  subscription Subscription?
+  subscription Subscription[]
   billingHistory  BillingHistory[]
 }
 
@@ -314,7 +314,7 @@ model BillingHistory {
 
 model Subscription {
   id   String  @id @default(uuid())
-  clinicId    String  @unique
+  clinicId    String  
   clinic      Clinic   @relation(fields: [clinicId],references: [id],onDelete: Cascade)
   stripeSubscriptionId   String  @unique
   quantity              Int    

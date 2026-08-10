@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
 import { AppError } from "../errors";
+import { SubscriptionStatus } from "../../generated/prisma/enums";
 
 export async function ensureIdempotency(jobId: String, workerType: string) {
   const key = `processed:${workerType}:${jobId}`;
@@ -119,3 +120,22 @@ export function classifyError(
   }
   return "unknown";
 }
+
+export const mapStripeStatusToInternal = (
+  stripeStatus: string,
+): SubscriptionStatus => {
+  switch (stripeStatus) {
+    case "active":
+      return SubscriptionStatus.ACTIVE;
+    case "past_due":
+      return SubscriptionStatus.PAST_DUE;
+    case "canceled":
+      return SubscriptionStatus.CANCELLED;
+    case "trialing":
+      return SubscriptionStatus.TRIALING;
+    case "incomplete":
+      return SubscriptionStatus.INCOMPLETE;
+    default:
+      return SubscriptionStatus.PAST_DUE;
+  }
+};
