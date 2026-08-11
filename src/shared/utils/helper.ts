@@ -139,3 +139,9 @@ export const mapStripeStatusToInternal = (
       return SubscriptionStatus.PAST_DUE;
   }
 };
+
+export function hashToInt64(key: string): bigint {
+  const hash = crypto.createHash("sha256").update(key).digest();
+  const truncated = hash.readBigInt64BE(0);
+  return truncated & 0x7fffffffffffffffn;
+}

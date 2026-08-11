@@ -21,6 +21,8 @@ import {
   ClinicRepository,
 } from "./modules/clinic/clinic.repository";
 import { ClinicService } from "./modules/clinic/clinic.service";
+import { ScheduleRepository } from "./modules/schedule/schedule.repository";
+import { TimeSlotRepository } from "./modules/timeslot/timeslot.repository";
 
 const authRepo = new AuthRepository();
 const emailVerificationRepo = new EmailVerificationRespository();
@@ -32,6 +34,8 @@ export const clinicInvitationRepo = new ClinicInvitationRepository();
 export const subscriptionRepo = new SubcriptionRepository();
 const billingHistoryRepo = new BillingHistoryRepository();
 const stripeWebhookEventRepo = new StripeWebhookEventRepository();
+export const scheduleRepo = new ScheduleRepository();
+export const timeSlotRepo = new TimeSlotRepository();
 
 const authService = new AuthService(
   authRepo,

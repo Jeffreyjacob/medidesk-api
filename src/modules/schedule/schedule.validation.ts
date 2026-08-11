@@ -17,4 +17,11 @@ export const createScheduleSchema = z
     path: ["endTime"],
   });
 
-export const updateScheuleSchema = z.object({});
+export const updateScheuleSchema = z.object({
+  startTime: timeFormat.optional(),
+  endTime: timeFormat.optional(),
+  slotDurationMinutes: z.number().int().min(10).max(240).optional(),
+});
+
+export type ICreateScheduleInput = z.infer<typeof createScheduleSchema>;
+export type IUpdateScheduleInput = z.infer<typeof updateScheuleSchema>;

@@ -1,11 +1,12 @@
 import { disconnect } from "node:cluster";
 import { prisma } from "./config/database";
 import { logger } from "./config/logger";
-import { clinicInvitationRepo } from "./controller";
+import { clinicInvitationRepo, scheduleRepo } from "./controller";
 import { createEmailWorker } from "./jobs/workers/email";
 import { createInviteExpiryWorker } from "./jobs/workers/inviteExpiry";
 import { disconnectRedis } from "./config/redis";
 import { createReconcileSubscriptionWorker } from "./jobs/workers/reconcile-subcription";
+import { createSlotGenerationWorker } from "./jobs/workers/slot-generation";
 
 export async function startWorker() {
   try {
@@ -14,6 +15,7 @@ export async function startWorker() {
     const emailWorker = createEmailWorker();
     const inviteExpiryWorker = createInviteExpiryWorker(clinicInvitationRepo);
     const reconcileSubscriptionWorker = createReconcileSubscriptionWorker();
+    const slotGenerationWorker = createSlotGenerationWorker(scheduleRepo);
 
     const gracefulShutdown = async (signal: string) => {
       logger.info("starting graceful shutdown...");
@@ -30,6 +32,7 @@ export async function startWorker() {
         await emailWorker.close();
         await inviteExpiryWorker.close();
         await reconcileSubscriptionWorker.close();
+        await slotGenerationWorker.close();
         await disconnectRedis();
         process.exit(0);
       } catch (error: any) {

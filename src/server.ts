@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import { logger } from "./config/logger";
 import http from "http";
 import { scheduleSubscriptionReconcile } from "./jobs/schedulers/reconcole-subscription";
+import { scheduleNightlySlotSweep } from "./jobs/schedulers/schedule-nightly-sweep";
 
 export async function startServer(): Promise<void> {
   try {
@@ -27,6 +28,15 @@ export async function startServer(): Promise<void> {
       logger.warn(
         { error },
         "Failed to schedule daily Subscription Reconcilation , continuing anyway",
+      );
+    }
+
+    try {
+      await scheduleNightlySlotSweep();
+    } catch (error: any) {
+      logger.warn(
+        { error },
+        "Failed to schedule night slot sweep , continuing anyway",
       );
     }
 
