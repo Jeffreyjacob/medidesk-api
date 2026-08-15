@@ -15,6 +15,7 @@ import { registerAllListeners } from "./events/listeners";
 import authRoutes from "./modules/authentication/auth.routes";
 import clinicRoutes from "./modules/clinic/clinic.route";
 import billingRoutes from "./modules/billing/billing.routes";
+import scheduleRoutes from "./modules/schedule/schedule.routes";
 
 class App {
   public readonly express: Application;
@@ -90,6 +91,7 @@ class App {
     this.express.use("/api/v1/auth/", authRoutes);
     this.express.use("/api/v1/clinic/", clinicRoutes);
     this.express.use("/api/v1/billing/", billingRoutes);
+    this.express.use("/api/v1/schedule/", scheduleRoutes);
   }
 
   setErrorMiddleware() {

@@ -21,7 +21,9 @@ import {
   ClinicRepository,
 } from "./modules/clinic/clinic.repository";
 import { ClinicService } from "./modules/clinic/clinic.service";
+import { ScheduleController } from "./modules/schedule/schedule.controller";
 import { ScheduleRepository } from "./modules/schedule/schedule.repository";
+import { ScheduleService } from "./modules/schedule/schedule.service";
 import { TimeSlotRepository } from "./modules/timeslot/timeslot.repository";
 
 const authRepo = new AuthRepository();
@@ -60,6 +62,13 @@ export const billingService = new BillingService(
   stripe,
 );
 
+export const scheduleService = new ScheduleService(
+  scheduleRepo,
+  timeSlotRepo,
+  clinicMemberRepo,
+);
+
 export const authController = new AuthController(authService);
 export const clinicController = new ClinicController(clinicService);
 export const billingController = new BillingController(billingService);
+export const scheduleController = new ScheduleController(scheduleService);
