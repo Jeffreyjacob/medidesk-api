@@ -13,9 +13,10 @@ import { NotFoundMiddleware } from "./middleware/notFoundHandler";
 import { errorHandlerMiddleware } from "./middleware/errorHandler";
 import { registerAllListeners } from "./events/listeners";
 import authRoutes from "./modules/authentication/auth.routes";
-import clinicRoutes from "./modules/clinic/clinic.route";
+import clinicRoutes from "./modules/clinic/clinic.routes";
 import billingRoutes from "./modules/billing/billing.routes";
 import scheduleRoutes from "./modules/schedule/schedule.routes";
+import patientRoutes from "./modules/patients/patient.routes";
 
 class App {
   public readonly express: Application;
@@ -92,6 +93,7 @@ class App {
     this.express.use("/api/v1/clinic/", clinicRoutes);
     this.express.use("/api/v1/billing/", billingRoutes);
     this.express.use("/api/v1/schedule/", scheduleRoutes);
+    this.express.use("/api/v1/patient/", patientRoutes);
   }
 
   setErrorMiddleware() {

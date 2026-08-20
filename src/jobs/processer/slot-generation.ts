@@ -29,7 +29,7 @@ function endOfDay(date: Date): Date {
   return d;
 }
 
-async function generateSlotForSchedule(
+export async function generateSlotForSchedule(
   scheduleRepo: ScheduleRepository,
   clinicId: string,
   scheduleId: string,

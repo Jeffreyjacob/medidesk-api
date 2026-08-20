@@ -145,3 +145,16 @@ export function hashToInt64(key: string): bigint {
   const truncated = hash.readBigInt64BE(0);
   return truncated & 0x7fffffffffffffffn;
 }
+
+export function dateDuration(date: Date) {
+  const startTime = new Date(date);
+  startTime.setHours(0, 0, 0, 0);
+
+  const endTime = new Date(date);
+  endTime.setHours(23, 59, 59, 999);
+
+  return {
+    startTime,
+    endTime,
+  };
+}
