@@ -86,6 +86,18 @@ interface AppEvents {
     removedBy: { id: string; name: string };
     role: ClinicRole;
   };
+  "appointment.booked": {
+    doctor: { id: string; email: string; firstName: string; lastName: string };
+    patient: {
+      id: string;
+      email: string | null;
+      firstName: string;
+      lastName: string;
+    };
+    bookedBy: string;
+    appointment: { id: string; clinicId: string; timeSlotId: string };
+    clinic: { id: string; name: string };
+  };
 }
 
 class TypedEventBus extends EventEmitter {

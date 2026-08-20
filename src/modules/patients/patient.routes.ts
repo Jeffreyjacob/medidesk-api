@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { authenticate, requireClinic } from "../../middleware/authentication";
+import {
+  authenticate,
+  requireClinic,
+  requirePro,
+} from "../../middleware/authentication";
 import { AsyncHandler } from "../../shared/utils/asyncHandler";
 import { patientController } from "../../controller";
 
@@ -23,6 +27,7 @@ router.get(
   "/full-search",
   authenticate,
   requireClinic,
+  requirePro,
   AsyncHandler(patientController.searchPatient.bind(patientController)),
 );
 

@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database";
 import { TimeSlot } from "../../generated/prisma/client";
 import { Prisma, SlotStatus } from "../../generated/prisma/client";
+import { PrismaOrTx } from "../../shared/repository/baseRepository";
 import { TenantRepository } from "../../shared/repository/tenantRepository";
 import { dateDuration } from "../../shared/utils/helper";
 import {
@@ -133,6 +134,25 @@ export class TimeSlotRepository extends TenantRepository<
         doctorId,
         clinicId,
       },
+    });
+  }
+  async updateTimeSlotStatus(
+    data: {
+      id: string;
+      clinicId: string;
+      status: SlotStatus;
+    },
+    tx: PrismaOrTx,
+  ) {
+    return this.updateOneInClinic({
+      clinicId: data.clinicId,
+      where: {
+        id: data.id,
+      },
+      data: {
+        status: data.status,
+      },
+      tx,
     });
   }
 }

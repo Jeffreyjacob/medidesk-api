@@ -94,6 +94,7 @@ model User {
   emailVerifications   EmailVerificationOTP[]
   clinicMemberships    ClinicMember[]
   clinicInvitation     ClinicInvitation[]
+  appointmentsBookedBy   Appointment[]
 }
 
 model RefreshToken {
@@ -255,18 +256,25 @@ model Appointment {
   id     String   @id @default(uuid())
   clinicId   String
   timeSlotId  String   @unique
+  doctorId   String
   patientId   String
+  bookedByUserId String
   status     AppointmentStatus  @default(CONFIRMED)
   createdAt   DateTime    @default(now())
   cancelledAt DateTime?
   cancelReason  String?
 
+
   clinic      Clinic    @relation(fields: [clinicId],references: [id])
   timeSlot    TimeSlot  @relation(fields: [timeSlotId],references: [id])
   patient     Patient  @relation(fields: [patientId],references: [id])
+  bookedByUser    User  @relation(fields: [bookedByUserId],references: [id])
   medicalRecord  MedicalRecord?
   invoice       Invoice?
 
+  
+  @@index([clinicId,doctorId,status])
+  @@index([clinicId,patientId])
 }
 
 model MedicalRecord {
